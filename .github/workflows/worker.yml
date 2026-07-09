@@ -25,6 +25,10 @@ jobs:
       - name: Install worker dependencies
         run: pip install -r worker/requirements.txt
 
+      - name: Write YouTube cookies file
+        working-directory: worker
+        run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+
       - name: Run worker
         working-directory: worker
         env:

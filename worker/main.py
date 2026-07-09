@@ -40,21 +40,33 @@ def transcribe_audio(audio_path: str) -> dict:
 
 def build_sentences_from_words(transcript: dict) -> list:
     """
-    Reconstructs real sentence boundaries from word-level timestamps
-    by splitting on sentence-ending punctuation (. ? !). Each
-    sentence's start/end time comes from its first/last word's exact
-    timing — this is what actually fixes mid-sentence cuts, since
-    Whisper's own 'segments' are chunked by pauses, not grammar.
-    Scoped to English content, where Whisper punctuation is reliable.
+    Reconstructs real sentence/phrase boundaries from word-level
+    timestamps. Splits on sentence-ending punctuation (. ? ! and
+    Devanagari ।/॥) AND on natural pauses in speech (a gap of 0.6s+
+    between one word ending and the next starting). The pause-based
+    fallback matters because Whisper often produces no punctuation at
+    all for some languages (observed with Hindi) — relying on
+    punctuation alone would treat an entire video as one sentence.
     """
     words = transcript.get("words", [])
     sentences = []
     current_words = []
 
-    for word_info in words:
+    SENTENCE_END_CHARS = (".", "?", "!", "।", "॥")
+    PAUSE_THRESHOLD_SECONDS = 0.6
+
+    for idx, word_info in enumerate(words):
         current_words.append(word_info)
         text = word_info.get("word", "").strip()
-        if text.endswith((".", "?", "!")):
+
+        ends_with_punctuation = text.endswith(SENTENCE_END_CHARS)
+
+        is_followed_by_pause = False
+        if idx + 1 < len(words):
+            gap = words[idx + 1]["start"] - word_info["end"]
+            is_followed_by_pause = gap >= PAUSE_THRESHOLD_SECONDS
+
+        if ends_with_punctuation or is_followed_by_pause:
             sentence_text = " ".join(w["word"].strip() for w in current_words)
             sentences.append(
                 {
@@ -88,6 +100,7 @@ def analyze_transcript(transcript: dict, video_duration: int) -> list:
     """
     sentences = build_sentences_from_words(transcript)
     print(f"Built {len(sentences)} sentence boundaries from word timestamps")
+
 
     lines = []
     for s in sentences:
@@ -160,11 +173,12 @@ def analyze_transcript(transcript: dict, video_duration: int) -> list:
     return valid_clips
 
 
+
 def create_and_upload_clips(video_path: str, clips: list, job_id: str, work_dir: str) -> list:
     """
-    Cuts each clip from the source video using ffmpeg (re-encoded for
-    frame-accurate cuts), uploads each to Supabase Storage, and
-    returns the clip metadata enriched with public URLs.
+    Cuts each clip from the source video using ffmpeg stream-copy
+    (no re-encoding), uploads each to Supabase Storage, and returns
+    the clip metadata enriched with public URLs.
     """
     bucket = os.environ.get("SUPABASE_STORAGE_BUCKET", "clips")
     enriched_clips = []
@@ -214,12 +228,28 @@ def create_and_upload_clips(video_path: str, clips: list, job_id: str, work_dir:
     return enriched_clips
 
 
+COOKIES_PATH = os.path.join(os.path.dirname(__file__), "cookies.txt")
+
+
+def _yt_dlp_base_opts() -> dict:
+    """
+    Shared yt-dlp options. Adds cookiefile only if one actually exists
+    (e.g. written by the GitHub Actions workflow) — locally, no
+    cookies.txt exists, so this is silently skipped and yt-dlp runs
+    unauthenticated, which is fine on a residential IP.
+    """
+    opts = {"quiet": True}
+    if os.path.exists(COOKIES_PATH):
+        opts["cookiefile"] = COOKIES_PATH
+    return opts
+
+
 def get_video_duration(youtube_url: str) -> int:
     """
     Fetches only metadata (no download) to check duration before
     committing to a full download.
     """
-    ydl_opts = {"quiet": True, "skip_download": True}
+    ydl_opts = {**_yt_dlp_base_opts(), "skip_download": True}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(youtube_url, download=False)
         return int(info.get("duration", 0))
@@ -235,12 +265,13 @@ def download_video_and_extract_audio(youtube_url: str, job_id: str, work_dir: st
     audio_path = os.path.join(work_dir, f"{job_id}.mp3")
 
     ydl_opts = {
+        **_yt_dlp_base_opts(),
         "format": "best[ext=mp4]/best",
         "outtmpl": video_path,
-        "quiet": True,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([youtube_url])
+
 
     # Extract compressed mono 16kHz audio via ffmpeg — small enough
     # to stay well under Whisper API's upload size limits.
