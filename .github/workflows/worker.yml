@@ -42,6 +42,10 @@ jobs:
           echo "Header:"
           head -3 cookies.txt
 
+      - name: Show yt-dlp version
+        working-directory: worker
+        run: yt-dlp --version
+
       - name: Run worker
         working-directory: worker
         env:
