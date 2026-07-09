@@ -1,0 +1,4 @@
+yt-dlp
+groq
+supabase
+python-dotenv
