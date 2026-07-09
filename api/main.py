@@ -17,7 +17,7 @@ app = FastAPI(title="Content Repurposing Engine API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://content-repurposing-engine-eight.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
