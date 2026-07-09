@@ -34,6 +34,14 @@ jobs:
         working-directory: worker
         run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
 
+      - name: Verify cookies file
+        working-directory: worker
+        run: |
+          echo "Lines:"
+          wc -l cookies.txt
+          echo "Header:"
+          head -3 cookies.txt
+
       - name: Run worker
         working-directory: worker
         env:
