@@ -6,6 +6,14 @@ An automated pipeline that turns long-form YouTube videos into short, ready-to-p
 
 ---
 
+## Screenshots
+
+**Submitting a video**
+![Homepage](screenshots/Homepage.png)
+
+**Completed job with playable clips**
+![Results page](screenshots/Results.png)
+
 ## Why this exists
 
 Manually slicing long-form content (podcasts, lectures, interviews) into short-form clips is time-consuming: watching hours of footage, finding hooks, cutting timeframes, reformatting. This project automates that pipeline end-to-end, built as an architectural showcase rather than a thin wrapper around a single AI API - it uses asynchronous job processing, a decoupled worker, and native media subprocessing across four independent layers.
