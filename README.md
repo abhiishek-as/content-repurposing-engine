@@ -56,8 +56,12 @@ Each service needs its own `.env` — see `.env.example` in each folder for requ
 
 ## Known Limitations
 
-**YouTube cookie expiration (GitHub Actions worker only):** YouTube blocks automated requests from cloud/datacenter IP ranges (including GitHub Actions runners) by default, requiring session cookie authentication to bypass bot detection. These cookies are rotated by Google as a security measure and typically expire within days, requiring periodic manual refresh via GitHub Secrets. This does not affect local execution, where requests come from a residential IP and no cookie authentication is required.
+YouTube cookie expiration (GitHub Actions worker only): YouTube blocks automated requests from cloud/datacenter IP ranges (including GitHub Actions runners) by default, requiring session cookie authentication to bypass bot detection. These cookies are rotated by Google as a security measure and typically expire within days, requiring periodic manual refresh via GitHub Secrets. This does not affect local execution, where requests come from a residential IP and no cookie authentication is required.
 
 This is a platform-level anti-automation measure rather than a bug in the pipeline itself — the tradeoff was deliberately not engineered around further (e.g. via a dedicated service account or automated cookie rotation) given the scope of this project as a portfolio piece rather than a production service.
 
-**Clip quality varies by content type:** works best on single-speaker, monologue-style content (interviews, lectures, talks). Multi-speaker content (podcasts, panel discussions) is harder, since the pipeline has no speaker diarization and relies on transcript text alone — it can't see visual reactions or distinguish who's speaking.
+Clip quality varies by content type: works best on single-speaker, monologue-style content (interviews, lectures, talks). Multi-speaker content (podcasts, panel discussions) is harder, since the pipeline has no speaker diarization and relies on transcript text alone — it can't see visual reactions or distinguish who's speaking.
+
+Videos are capped at 20 minutes. This keeps each job comfortably within GitHub Actions' free-tier compute budget and Whisper's practical upload limits, and keeps demo turnaround fast. Longer videos are rejected upfront with a clear error rather than failing partway through.
+
+English-language content only. Sentence-boundary reconstruction relies on Whisper's punctuation output, which is reliable for English but inconsistent for several other languages (observed firsthand with Hindi, where Whisper often returns no punctuation at all) — scoped to English deliberately rather than building language-specific fallback logic.
