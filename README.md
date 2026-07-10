@@ -1,0 +1,5 @@
+## Known Limitations
+
+**YouTube cookie expiration (GitHub Actions worker only):** YouTube blocks automated requests from cloud/datacenter IP ranges (including GitHub Actions runners) by default, requiring session cookie authentication to bypass bot detection. These cookies are rotated by Google as a security measure and typically expire within days, requiring periodic manual refresh via GitHub Secrets. This does not affect local execution, where requests come from a residential IP and no cookie authentication is required.
+
+This is a platform-level anti-automation measure rather than a bug in the pipeline itself — the tradeoff was deliberately not engineered around further (e.g. via a dedicated service account or automated cookie rotation) given the scope of this project as a portfolio piece rather than a production service.
