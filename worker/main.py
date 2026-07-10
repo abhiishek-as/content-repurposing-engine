@@ -237,8 +237,14 @@ def _yt_dlp_base_opts() -> dict:
     (e.g. written by the GitHub Actions workflow) — locally, no
     cookies.txt exists, so this is silently skipped and yt-dlp runs
     unauthenticated, which is fine on a residential IP.
+
+    remote_components enables yt-dlp's EJS challenge solver, needed
+    to decode YouTube's obfuscated video URLs ("n challenge"). This
+    downloads a small solver script from GitHub at runtime — yt-dlp
+    requires this explicit opt-in rather than silently fetching
+    remote code.
     """
-    opts = {"quiet": True}
+    opts = {"quiet": True, "remote_components": ["ejs:github"]}
     if os.path.exists(COOKIES_PATH):
         opts["cookiefile"] = COOKIES_PATH
     return opts

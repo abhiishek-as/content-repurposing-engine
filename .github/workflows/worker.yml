@@ -23,9 +23,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Install Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
+        run: |
+          curl -fsSL https://deno.land/install.sh | sh
+          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
 
       - name: Install worker dependencies
         run: pip install -r worker/requirements.txt
@@ -33,18 +33,6 @@ jobs:
       - name: Write YouTube cookies file
         working-directory: worker
         run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
-
-      - name: Verify cookies file
-        working-directory: worker
-        run: |
-          echo "Lines:"
-          wc -l cookies.txt
-          echo "Header:"
-          head -3 cookies.txt
-
-      - name: Show yt-dlp version
-        working-directory: worker
-        run: yt-dlp --version
 
       - name: Run worker
         working-directory: worker
